@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+options.json
+*.zip
+*.log
+node_modules/
+.ruff_cache/

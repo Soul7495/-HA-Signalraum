@@ -1,0 +1,12 @@
+{
+  "environment": "Chromium + local Ingress proxy; not Home Assistant Android app",
+  "checks": [
+    "empty state and base prefix without trailing slash",
+    "desktop text and gzip downloads preserve payload",
+    "details keyboard navigation and scrollbar baseline",
+    "API failure, retained cases, recovery",
+    "bounded pagination and URL state",
+    "390px touch viewport, no horizontal overflow, text download"
+  ],
+  "console_errors": []
+}

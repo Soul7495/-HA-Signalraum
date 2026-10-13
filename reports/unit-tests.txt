@@ -1,0 +1,38 @@
+test_active_eviction_does_not_crash_finalization (test_collector.CollectorTests.test_active_eviction_does_not_crash_finalization) ... ok
+test_cursor_corruption_and_interrupted_stage_recovery (test_collector.CollectorTests.test_cursor_corruption_and_interrupted_stage_recovery) ... ok
+test_evcc_restart_and_outage_mark_gap (test_collector.CollectorTests.test_evcc_restart_and_outage_mark_gap) ... Abruf/Sicherung fehlgeschlagen (TimeoutError)
+ok
+test_fault_selection (test_collector.CollectorTests.test_fault_selection) ... ok
+test_fault_storm_bounds_work_without_losing_snapshot (test_collector.CollectorTests.test_fault_storm_bounds_work_without_losing_snapshot) ... ok
+test_initial_fault_saved_and_labeled (test_collector.CollectorTests.test_initial_fault_saved_and_labeled) ... ok
+test_legacy_archives_remain_visible (test_collector.CollectorTests.test_legacy_archives_remain_visible) ... ok
+test_linear_overlap_matches_reference_randomized (test_collector.CollectorTests.test_linear_overlap_matches_reference_randomized) ... ok
+test_new_case_after_window (test_collector.CollectorTests.test_new_case_after_window) ... ok
+test_overlap_with_duplicates_rotation_and_reset (test_collector.CollectorTests.test_overlap_with_duplicates_rotation_and_reset) ... ok
+test_pagination_clamps (test_collector.CollectorTests.test_pagination_clamps) ... ok
+test_post_completes_during_outage (test_collector.CollectorTests.test_post_completes_during_outage) ... Abruf/Sicherung fehlgeschlagen (TimeoutError)
+ok
+test_redaction_json_url_and_configured_key (test_collector.CollectorTests.test_redaction_json_url_and_configured_key) ... ok
+test_repeats_grouped_and_error_numbers_stay_distinct (test_collector.CollectorTests.test_repeats_grouped_and_error_numbers_stay_distinct) ... ok
+test_restart_preserves_pre_tail_and_counts (test_collector.CollectorTests.test_restart_preserves_pre_tail_and_counts) ... ok
+test_retention_uses_capture_time_not_file_updates (test_collector.CollectorTests.test_retention_uses_capture_time_not_file_updates) ... ok
+test_source_outage_creates_diagnosis_with_last_available_history (test_collector.CollectorTests.test_source_outage_creates_diagnosis_with_last_available_history) ... Abruf/Sicherung fehlgeschlagen (TimeoutError)
+ok
+test_storage_pressure_and_atomic_peak (test_collector.CollectorTests.test_storage_pressure_and_atomic_peak) ... ok
+test_tail_truncates_to_atomic_budget_and_preserves_pre_log (test_collector.CollectorTests.test_tail_truncates_to_atomic_budget_and_preserves_pre_log) ... ok
+test_valid_json_with_corrupt_case_schema_does_not_break_restart (test_collector.CollectorTests.test_valid_json_with_corrupt_case_schema_does_not_break_restart) ... ok
+test_null_and_plain_text (test_http.AdapterTests.test_null_and_plain_text) ... ok
+test_oversize_html_invalid_json_and_auth (test_http.AdapterTests.test_oversize_html_invalid_json_and_auth) ... ok
+test_redirect_not_followed (test_http.AdapterTests.test_redirect_not_followed) ... ok
+test_stable_json_format_and_get_only (test_http.AdapterTests.test_stable_json_format_and_get_only) ... ok
+test_api_status_and_page (test_http.HttpTests.test_api_status_and_page) ... ok
+test_download_original_and_mobile_friendly_text (test_http.HttpTests.test_download_original_and_mobile_friendly_text) ... ok
+test_download_survives_concurrent_retention (test_http.HttpTests.test_download_survives_concurrent_retention) ... ok
+test_ingress_authorization_rejects_direct_client_and_spoofed_headers (test_http.HttpTests.test_ingress_authorization_rejects_direct_client_and_spoofed_headers) ... ok
+test_ingress_base_without_trailing_slash (test_http.HttpTests.test_ingress_base_without_trailing_slash) ... ok
+test_traversal_symlink_and_missing_rejected (test_http.HttpTests.test_traversal_symlink_and_missing_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 5.788s
+
+OK

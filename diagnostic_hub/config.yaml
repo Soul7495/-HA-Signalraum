@@ -1,0 +1,34 @@
+name: Diagnostic Hub
+version: 0.2.0
+slug: diagnostic_hub
+description: Lesender Diagnose-Hub mit evcc/RCT-Fehlererkennung und dauerhaften Diagnosefällen
+url: https://github.com/Soul7495/-HA-Signalraum
+arch:
+  - aarch64
+  - amd64
+startup: application
+boot: auto
+init: false
+ingress: true
+ingress_port: 8099
+ingress_stream: true
+panel_icon: mdi:clipboard-pulse
+panel_title: Diagnose
+panel_admin: true
+map:
+  - type: share
+    read_only: false
+options:
+  evcc_url: http://homeassistant.local:7070
+  evcc_api_key: ""
+  poll_seconds: 15
+  retention_days: 14
+  max_storage_mb: 100
+  gzip_enabled: true
+schema:
+  evcc_url: str
+  evcc_api_key: password
+  poll_seconds: int(10,300)
+  retention_days: int(1,365)
+  max_storage_mb: int(10,10000)
+  gzip_enabled: bool

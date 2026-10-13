@@ -1,0 +1,15 @@
+configuration:
+  evcc_url:
+    name: evcc-Adresse
+    description: Basisadresse der evcc-Instanz, beispielsweise http://homeassistant.local:7070
+  evcc_api_key:
+    name: evcc API-Schlüssel
+    description: Optionaler langlebiger API-Schlüssel für geschützte evcc-Instanzen.
+  poll_seconds:
+    name: Prüfintervall (Sekunden)
+  retention_days:
+    name: Aufbewahrung (Tage)
+  max_storage_mb:
+    name: Speichergrenze (MB)
+  gzip_enabled:
+    name: gzip-Komprimierung

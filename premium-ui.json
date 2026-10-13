@@ -1,0 +1,14 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["diagnostic_hub/static"],
+  "locale": "de-DE",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Scrollbar", "CRUD"],
+  "requiredCommands": ["unit", "browser", "project"],
+  "commands": {
+    "unit": "python -m unittest discover -s tests -v",
+    "browser": "python scripts/browser_check.py",
+    "project": "python scripts/check_project.py"
+  },
+  "evidence": {"failurePaths": "tests/test_http.py"}
+}
