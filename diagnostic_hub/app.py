@@ -13,6 +13,7 @@ from pathlib import Path
 from collector import Collector, settings
 from recordings import Recordings
 from sources import Sources, filtered, readable_error
+from version import __version__
 
 STATIC = Path(__file__).parent / "static"
 
@@ -77,7 +78,15 @@ def handler_for(collector, development=False, hub=None):
             url = urllib.parse.urlsplit(self.path)
             path = url.path
             if hub is not None and path == "/api/hub":
-                self.reply(json.dumps(hub.summary()).encode(), "application/json")
+                self.reply(json.dumps(dict(hub.summary(), version=__version__)).encode(), "application/json")
+            elif hub is not None and path == "/api/diagnostics":
+                hub.sources.discover(force=True)
+                data = dict(hub.sources.diagnostics(), version=__version__)
+                self.reply(
+                    json.dumps(data, ensure_ascii=False, indent=2).encode(),
+                    "application/json",
+                    attachment="diagnostic-hub-status.json",
+                )
             elif hub is not None and path == "/api/sources":
                 self.reply(
                     json.dumps(
@@ -169,9 +178,9 @@ def handler_for(collector, development=False, hub=None):
                 base = self.headers.get("X-Ingress-Path", "").rstrip("/") + "/"
                 if not re.fullmatch(r"/[A-Za-z0-9_/-]*", base):
                     base = "/"
-                page = (STATIC / "index.html").read_text().replace("__BASE__", base)
+                page = (STATIC / "index.html").read_text().replace("__BASE__", base).replace("__VERSION__", __version__)
                 self.reply(page.encode(), "text/html; charset=utf-8")
-            elif path in ("/static/app.js", "/static/hub.js", "/static/style.css"):
+            elif path in ("/static/app.js", "/static/hub.js", "/static/runtime.js", "/static/style.css"):
                 target = STATIC / path.split("/")[-1]
                 self.reply(
                     target.read_bytes(),

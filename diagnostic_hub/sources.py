@@ -29,6 +29,14 @@ def filtered(lines, minimum):
     return result
 
 
+class SourceError(RuntimeError):
+    """Locally generated, non-secret operational error."""
+
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
+
+
 class Supervisor:
     def __init__(self, token=None, url="http://supervisor"):
         self.token = os.environ.get("SUPERVISOR_TOKEN", "") if token is None else token
@@ -40,7 +48,10 @@ class Supervisor:
         if not re.fullmatch(r"/addons(?:/[a-z0-9_-]+/logs)?|/core/logs", path):
             raise ValueError("Nicht zugelassener Supervisor-Lesezugriff")
         if not self.token:
-            raise RuntimeError("Supervisor-Zugriff fehlt. Add-on aktualisieren und neu starten.")
+            raise SourceError(
+                "supervisor_token_missing",
+                "Supervisor-Zugriff fehlt: kein Laufzeittoken vorhanden. Repository-Version aktualisieren und Add-on neu starten; eine lokale ZIP-Installation erhält keine GitHub-Updates.",
+            )
         query = "?lines=10000&no_colors=1" if path.endswith("/logs") else ""
         headers = {"Authorization": "Bearer " + self.token, "Accept": "text/plain" if query else "application/json"}
         request = urllib.request.Request(self.url + path + query, headers=headers)
@@ -53,10 +64,12 @@ class Supervisor:
     def addons(self):
         obj = json.loads(self.get("/addons"))
         if obj.get("result") != "ok":
-            raise RuntimeError("Supervisor hat die App-Liste abgewiesen.")
+            raise SourceError("supervisor_response_rejected", "Supervisor hat die App-Liste abgewiesen.")
         addons = obj.get("data", {}).get("addons")
         if not isinstance(addons, list):
-            raise ValueError("Unbekanntes Supervisor-Listenformat")
+            raise SourceError(
+                "supervisor_format", "Unbekanntes Supervisor-Listenformat; Verbindungsstatus herunterladen."
+            )
         return addons
 
     def logs(self, source_id):
@@ -70,6 +83,8 @@ class Supervisor:
 
 
 def readable_error(exc):
+    if isinstance(exc, SourceError):
+        return str(exc)
     if isinstance(exc, urllib.error.HTTPError):
         return {
             401: "Authentifizierung fehlgeschlagen (HTTP 401).",
@@ -92,6 +107,7 @@ class Sources:
         self.lock = threading.RLock()
         self.items = {}
         self.error = ""
+        self.error_code = None
         self.checked_at = None
         self.direct = EvccAdapter(config)
 
@@ -138,8 +154,16 @@ class Sources:
                     description="Core-Log über den Supervisor; Integrationen protokollieren gegebenenfalls hier.",
                 )
                 self.error = ""
+                self.error_code = None
             except Exception as exc:
                 self.error = readable_error(exc)
+                self.error_code = (
+                    exc.code
+                    if isinstance(exc, SourceError)
+                    else f"http_{exc.code}"
+                    if isinstance(exc, urllib.error.HTTPError)
+                    else type(exc).__name__
+                )
                 # Keep known sources during a temporary discovery failure.
                 items.update({k: dict(v, state="unknown") for k, v in self.items.items() if v["kind"] != "api"})
             self.items = items
@@ -153,6 +177,17 @@ class Sources:
             ],
             error=self.error,
             checked_at=self.checked_at,
+        )
+
+    def diagnostics(self):
+        return dict(
+            supervisor_token_present=bool(self.supervisor.token) if hasattr(self.supervisor, "token") else None,
+            discovery_status="failed" if self.error else "ok",
+            error_code=self.error_code,
+            error=self.error,
+            checked_at=self.checked_at,
+            installed_apps=sum(item["kind"] == "addon" for item in self.items.values()),
+            available_sources=len(self.items),
         )
 
     def resolve(self, source_id):

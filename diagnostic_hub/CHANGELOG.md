@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.3.1
+
+- Startfehler auf unverschlüsselten HTTP-Ursprüngen behoben: keine Abhängigkeit mehr von `crypto.randomUUID`, `AbortSignal.any` oder `AbortSignal.timeout`.
+- Separate App- und Logquellen-Auswahl, sichtbare Versionsnummer und deutliche Fehler bei fehlgeschlagener Supervisor-Erkennung.
+- Diagnosebericht als JSON-Download mit Version, Erkennungsstatus und Quellenanzahl; keine Tokens, privaten URLs oder Logs.
+
 ## 0.3.0
 
 - Installierte Supervisor-Apps und Core als Logquellen automatisch erkennen. Feste GET-Allowlist, manager-Rolle erforderlich.

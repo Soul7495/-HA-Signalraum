@@ -1,7 +1,7 @@
 #0 building with "default" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile
-#1 transferring dockerfile: 438B done
+#1 transferring dockerfile: 449B done
 #1 DONE 0.0s
 
 #2 [internal] load metadata for docker.io/library/python:3.12-alpine@sha256:1b668429b3511ab407d8e00648891631b0b1a4d7e15e3ca70f38ab5b91ad4ab4
@@ -14,22 +14,21 @@
 #4 [1/4] FROM docker.io/library/python:3.12-alpine@sha256:1b668429b3511ab407d8e00648891631b0b1a4d7e15e3ca70f38ab5b91ad4ab4
 #4 DONE 0.0s
 
-#5 [internal] load build context
-#5 transferring context: 317B done
-#5 DONE 0.0s
+#5 [2/4] WORKDIR /app
+#5 CACHED
 
-#6 [2/4] WORKDIR /app
-#6 CACHED
+#6 [internal] load build context
+#6 transferring context: 383B done
+#6 DONE 0.0s
 
-#7 [3/4] COPY app.py collector.py evcc.py sources.py recordings.py /app/
-#7 DONE 0.2s
+#7 [3/4] COPY app.py collector.py evcc.py sources.py recordings.py version.py /app/
+#7 DONE 0.6s
 
 #8 [4/4] COPY static /app/static
-#8 DONE 0.5s
+#8 DONE 0.3s
 
 #9 exporting to image
-#9 exporting layers
-#9 exporting layers 0.5s done
-#9 writing image sha256:b7536aca29b7f12c695c850099ffac31d25bdfa9d7dfa1a4778470209a416347 done
-#9 naming to docker.io/library/diagnostic-hub:0.3.0-arm64 done
-#9 DONE 0.6s
+#9 exporting layers 0.1s done
+#9 writing image sha256:61ef5ad65e14c18f344e630393f9f461b943ee6728a44f5005799e74ab593666 done
+#9 naming to docker.io/library/diagnostic-hub:0.3.1-arm64 done
+#9 DONE 0.2s

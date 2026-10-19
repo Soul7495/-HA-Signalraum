@@ -33,8 +33,10 @@ test_ingress_base_without_trailing_slash (test_http.HttpTests.test_ingress_base_
 test_traversal_symlink_and_missing_rejected (test_http.HttpTests.test_traversal_symlink_and_missing_rejected) ... ok
 test_api_create_stop_snapshot_and_download (test_recordings.RecordingHTTPTests.test_api_create_stop_snapshot_and_download) ... ok
 test_api_rejects_csrf_and_unsafe_source (test_recordings.RecordingHTTPTests.test_api_rejects_csrf_and_unsafe_source) ... ok
+test_downloadable_diagnostics_show_version_and_safe_status (test_recordings.RecordingHTTPTests.test_downloadable_diagnostics_show_version_and_safe_status) ... ok
 test_atomic_failure_rolls_back_both_logs_and_cursor (test_recordings.RecordingTests.test_atomic_failure_rolls_back_both_logs_and_cursor) ... ok
 test_discovery_apps_core_excludes_self_and_invalid (test_recordings.RecordingTests.test_discovery_apps_core_excludes_self_and_invalid) ... ok
+test_discovery_diagnostics_hide_tokens_and_urls (test_recordings.RecordingTests.test_discovery_diagnostics_hide_tokens_and_urls) ... ok
 test_existing_buffer_is_opt_in (test_recordings.RecordingTests.test_existing_buffer_is_opt_in) ... ok
 test_filter_preserves_context_and_log_levels (test_recordings.RecordingTests.test_filter_preserves_context_and_log_levels) ... ok
 test_idempotent_start_and_stop (test_recordings.RecordingTests.test_idempotent_start_and_stop) ... ok
@@ -53,6 +55,6 @@ test_unavailable_source_and_recovery (test_recordings.RecordingTests.test_unavai
 test_real_http_auth_discovery_logs_and_allowlist (test_recordings.SupervisorHTTPTests.test_real_http_auth_discovery_logs_and_allowlist) ... ok
 
 ----------------------------------------------------------------------
-Ran 50 tests in 7.799s
+Ran 52 tests in 7.818s
 
 OK

@@ -1,0 +1,12 @@
+{
+  "environment": "Chromium + local Ingress proxy; not Home Assistant Android app",
+  "checks": [
+    "real non-secure HTTP origin and missing randomUUID/AbortSignal.any/timeout",
+    "HTTP startup, discovered app selection, validation, DEBUG profile start and stop; downloads covered separately in standard browser suite"
+  ],
+  "console_errors": [],
+  "limitations": [
+    "HTTP origin is simulated by request interception; intercepted Chromium attachment downloads cancel in this harness and are not asserted here",
+    "Not a real Home Assistant or Android test"
+  ]
+}

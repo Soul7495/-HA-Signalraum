@@ -220,6 +220,24 @@ class RecordingTests(RecordingFixture, unittest.TestCase):
         catalog = source.discover()
         self.assertEqual([x["id"] for x in catalog["items"]], ["evcc-api"])
         self.assertTrue(catalog["error"])
+        self.assertIn("kein Laufzeittoken", catalog["error"])
+        self.assertEqual(source.diagnostics()["error_code"], "supervisor_token_missing")
+
+    def test_discovery_diagnostics_hide_tokens_and_urls(self):
+        supervisor = Supervisor(token="private-supervisor-key")
+        source = Sources(self.config, supervisor)
+        with patch.object(
+            supervisor,
+            "addons",
+            side_effect=urllib.error.HTTPError("http://private-host/?secret=private-supervisor-key", 403, "", {}, None),
+        ):
+            source.discover()
+        report = source.diagnostics()
+        self.assertEqual(report["error_code"], "http_403")
+        self.assertEqual(report["discovery_status"], "failed")
+        self.assertTrue(report["supervisor_token_present"])
+        self.assertNotIn("private-supervisor-key", json.dumps(report))
+        self.assertNotIn("private-host", json.dumps(report))
 
     def test_retention_cascades_logs(self):
         item = self.create(include_history=True)
@@ -310,6 +328,15 @@ class RecordingHTTPTests(RecordingFixture, unittest.TestCase):
             self.assertIn("attachment", response.headers["Content-Disposition"])
         with self.request(f"/api/recordings/{item['id']}/stop", {}) as response:
             self.assertEqual(json.load(response)["state"], "stopped")
+
+    def test_downloadable_diagnostics_show_version_and_safe_status(self):
+        with self.request("/api/diagnostics") as response:
+            self.assertIn("attachment", response.headers["Content-Disposition"])
+            report = json.load(response)
+        self.assertEqual(report["version"], "0.3.1")
+        self.assertEqual(report["discovery_status"], "ok")
+        self.assertEqual(report["installed_apps"], 3)
+        self.assertNotIn("evcc_api_key", report)
 
     def test_api_rejects_csrf_and_unsafe_source(self):
         with self.assertRaises(urllib.error.HTTPError) as result:

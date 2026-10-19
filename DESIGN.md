@@ -92,3 +92,6 @@ Aufnahmeformular mit nativen Selects und Zahlenfeldern. Plattformeigene Popups s
 - Erhalte offene Sicherungsdetails und Tastaturfokus bei Hintergrundaktualisierung.
 - Verwende keine künstlichen Alarmzahlen oder grafischen Ersatz für reale Vorfälle.
 - Behaupte keine Android- oder Fernzugriffskompatibilität ohne Test auf der Anlage.
+
+
+App-Auswahl und Logquellen-Auswahl sind getrennte native Felder; bei nur einer verfügbaren Quelle wird diese nach App-Auswahl vorbelegt. Erkennungsfehler stehen sichtbar neben der App-Liste. Version und herunterladbarer Diagnosestatus helfen bei der Supportprüfung. Der Start muss auch auf normalen HTTP-Ursprüngen ohne moderne Secure-Context-APIs funktionieren.

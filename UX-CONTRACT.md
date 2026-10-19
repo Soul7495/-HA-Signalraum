@@ -18,3 +18,6 @@ Geschäftliche Grenzen werden nie durch UI-Defaults ersetzt: Aufbewahrung, lesen
 ## Aufnahmefluss 0.3.0
 
 Nutzerentscheidung vom 19.10.2026: manuelle Aufnahme als Standard; optionale automatische evcc-Fehlersicherung; Logstufen niemals ändern. App → Logquelle → Stufenfilter → Zeitfenster. Start bleibt in derselben Ansicht und zeigt Bestätigung/Endzeit. Wiederholte Startanfragen derselben Anfrage-ID sind idempotent. Beenden stoppt weitere Sammlung und erhält alle Daten; dafür keine zusätzliche Bestätigung. Formwerte bleiben nach Fehlern erhalten, ungültiges Feld erhält Fokus und aria-invalid. Datenabdeckung beginnt ohne Ausgangspuffer beim ersten erfolgreichen Abruf. Hintergrundaktualisierung ersetzt keine fokussierten Aktionen oder offenen Selects.
+
+
+App-Auswahl und Logquellen-Auswahl sind getrennte native Felder; bei nur einer verfügbaren Quelle wird diese nach App-Auswahl vorbelegt. Erkennungsfehler stehen sichtbar neben der App-Liste. Version und herunterladbarer Diagnosestatus helfen bei der Supportprüfung. Der Start muss auch auf normalen HTTP-Ursprüngen ohne moderne Secure-Context-APIs funktionieren.

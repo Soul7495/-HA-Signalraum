@@ -11,7 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 config = yaml.safe_load((ROOT / "diagnostic_hub/config.yaml").read_text())
 repository = yaml.safe_load((ROOT / "repository.yaml").read_text())
 assert repository["url"] == "https://github.com/Soul7495/-HA-Signalraum"
-assert config["version"] == "0.3.0"
+assert config["version"] == "0.3.1"
+version_tree = ast.parse((ROOT / "diagnostic_hub/version.py").read_text())
+assert version_tree.body[0].value.value == config["version"]
 assert config["slug"] == "diagnostic_hub"
 assert config["arch"] == ["aarch64", "amd64"]
 assert config["ingress"] and config["ingress_port"] == 8099

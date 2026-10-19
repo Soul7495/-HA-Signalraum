@@ -28,6 +28,7 @@ PREFIX = "/api/hassio_ingress/test-session"
 
 
 def main():
+    compatibility = "--legacy-webview" in sys.argv
     with tempfile.TemporaryDirectory() as temp:
         collector = Collector(dict(DEFAULTS), Path(temp))
         stamp = [time.time()]
@@ -86,18 +87,63 @@ def main():
                 context = browser.new_context(
                     viewport={"width": 1440, "height": 1100}, accept_downloads=True, reduced_motion="reduce"
                 )
+
+                def prepare_context(ctx):
+                    if compatibility:
+                        ctx.add_init_script(
+                            "Object.defineProperty(AbortSignal,'any',{value:undefined});Object.defineProperty(AbortSignal,'timeout',{value:undefined});"
+                        )
+                        origin = f"http://ha-test.local:{proxy.server_port}"
+                        ctx.route(
+                            origin + "/**",
+                            lambda route: route.fulfill(
+                                response=route.fetch(
+                                    url=route.request.url.replace(origin, f"http://127.0.0.1:{proxy.server_port}")
+                                )
+                            ),
+                        )
+
+                prepare_context(context)
+                browser_url = url.replace("127.0.0.1", "ha-test.local") if compatibility else url
                 page = context.new_page()
                 errors = []
                 page.on("pageerror", lambda error: errors.append(str(error)))
-                page.goto(url)
+                page.goto(browser_url)
                 page.get_by_text("Noch keine manuelle Aufnahme.", exact=False).wait_for()
+                if compatibility:
+                    assert page.evaluate(
+                        "!window.isSecureContext && typeof crypto.randomUUID === 'undefined' && typeof AbortSignal.any === 'undefined'"
+                    )
+                    report["checks"].append(
+                        "real non-secure HTTP origin and missing randomUUID/AbortSignal.any/timeout"
+                    )
                 page.get_by_role("button", name="Aufnahme starten", exact=True).click()
                 page.wait_for_function(
-                    "() => document.querySelector('#record-source').getAttribute('aria-invalid') === 'true'"
+                    "() => document.querySelector('#record-app').getAttribute('aria-invalid') === 'true'"
                 )
-                assert page.locator("#record-source").evaluate("(el) => el === document.activeElement")
+                assert page.locator("#record-app").evaluate("(el) => el === document.activeElement")
+                page.locator("#record-app").select_option("addon:local_evcc")
                 page.locator("#record-source").select_option("addon:local_evcc")
                 page.locator("#record-level").select_option("DEBUG")
+                if compatibility:
+                    page.get_by_role("button", name="Aufnahme starten", exact=True).click()
+                    page.get_by_text("Aufnahme gestartet:", exact=False).wait_for()
+                    page.locator("#recordings-list").get_by_role("button", name="Aufnahme beenden").click()
+                    page.get_by_text("Aufnahme beendet. Bisherige Daten bleiben erhalten.", exact=True).wait_for()
+                    assert not errors, errors
+                    report["console_errors"] = errors
+                    report["checks"].append(
+                        "HTTP startup, discovered app selection, validation, DEBUG profile start and stop; downloads covered separately in standard browser suite"
+                    )
+                    report["limitations"] = [
+                        "HTTP origin is simulated by request interception; intercepted Chromium attachment downloads cancel in this harness and are not asserted here",
+                        "Not a real Home Assistant or Android test",
+                    ]
+                    (ROOT / "reports" / "browser-legacy.json").write_text(json.dumps(report, indent=2) + "\n")
+                    print(json.dumps(report, indent=2))
+                    browser.close()
+                    return
+
                 page.locator("#record-level").focus()
                 page.keyboard.press("Alt+ArrowDown")
                 page.keyboard.press("Escape")
@@ -181,9 +227,11 @@ def main():
                     accept_downloads=True,
                     reduced_motion="reduce",
                 )
+                prepare_context(mobile)
                 narrow = mobile.new_page()
-                narrow.goto(url)
+                narrow.goto(browser_url)
                 narrow.locator("#recordings-list").get_by_role("link", name="Text herunterladen").first.wait_for()
+                narrow.locator("#record-app").select_option("addon:local_zigbee2mqtt")
                 narrow.locator("#record-source").select_option("addon:local_zigbee2mqtt")
                 narrow.locator("#record-level").focus()
                 narrow.keyboard.press("ArrowDown")
@@ -203,7 +251,9 @@ def main():
             for server in (proxy, backend):
                 server.shutdown()
                 server.server_close()
-        (ROOT / "reports" / "browser.json").write_text(json.dumps(report, indent=2) + "\n")
+        (ROOT / "reports" / ("browser-legacy.json" if compatibility else "browser.json")).write_text(
+            json.dumps(report, indent=2) + "\n"
+        )
         print(json.dumps(report, indent=2))
 
 
