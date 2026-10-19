@@ -13,3 +13,6 @@ configuration:
     name: Speichergrenze (MB)
   gzip_enabled:
     name: gzip-Komprimierung
+  automatic_evcc_enabled:
+    name: Automatische evcc-Fehlersicherung
+    description: Optional zusätzlich zu manuellen Aufnahmen. Standardmäßig aus; Logstufen werden nicht verändert.

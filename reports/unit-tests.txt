@@ -31,8 +31,28 @@ test_download_survives_concurrent_retention (test_http.HttpTests.test_download_s
 test_ingress_authorization_rejects_direct_client_and_spoofed_headers (test_http.HttpTests.test_ingress_authorization_rejects_direct_client_and_spoofed_headers) ... ok
 test_ingress_base_without_trailing_slash (test_http.HttpTests.test_ingress_base_without_trailing_slash) ... ok
 test_traversal_symlink_and_missing_rejected (test_http.HttpTests.test_traversal_symlink_and_missing_rejected) ... ok
+test_api_create_stop_snapshot_and_download (test_recordings.RecordingHTTPTests.test_api_create_stop_snapshot_and_download) ... ok
+test_api_rejects_csrf_and_unsafe_source (test_recordings.RecordingHTTPTests.test_api_rejects_csrf_and_unsafe_source) ... ok
+test_atomic_failure_rolls_back_both_logs_and_cursor (test_recordings.RecordingTests.test_atomic_failure_rolls_back_both_logs_and_cursor) ... ok
+test_discovery_apps_core_excludes_self_and_invalid (test_recordings.RecordingTests.test_discovery_apps_core_excludes_self_and_invalid) ... ok
+test_existing_buffer_is_opt_in (test_recordings.RecordingTests.test_existing_buffer_is_opt_in) ... ok
+test_filter_preserves_context_and_log_levels (test_recordings.RecordingTests.test_filter_preserves_context_and_log_levels) ... ok
+test_idempotent_start_and_stop (test_recordings.RecordingTests.test_idempotent_start_and_stop) ... ok
+test_idle_never_reads_logs (test_recordings.RecordingTests.test_idle_never_reads_logs) ... ok
+test_invalid_profile_source_and_maximum_concurrency (test_recordings.RecordingTests.test_invalid_profile_source_and_maximum_concurrency) ... ok
+test_missing_supervisor_still_offers_configured_evcc (test_recordings.RecordingTests.test_missing_supervisor_still_offers_configured_evcc) ... ok
+test_no_successful_sample_finishes_as_incomplete (test_recordings.RecordingTests.test_no_successful_sample_finishes_as_incomplete) ... ok
+test_restart_after_deadline_does_not_resume (test_recordings.RecordingTests.test_restart_after_deadline_does_not_resume) ... ok
+test_restart_cursor_deadline_and_gap (test_recordings.RecordingTests.test_restart_cursor_deadline_and_gap) ... ok
+test_retention_cascades_logs (test_recordings.RecordingTests.test_retention_cascades_logs) ... ok
+test_slow_source_does_not_delay_healthy_source (test_recordings.RecordingTests.test_slow_source_does_not_delay_healthy_source) ... ok
+test_stop_during_network_fetch_discards_late_result (test_recordings.RecordingTests.test_stop_during_network_fetch_discards_late_result) ... ok
+test_storage_stops_without_overwriting_earlier_chunks (test_recordings.RecordingTests.test_storage_stops_without_overwriting_earlier_chunks) ... ok
+test_twelve_hour_window_and_threshold_without_history (test_recordings.RecordingTests.test_twelve_hour_window_and_threshold_without_history) ... ok
+test_unavailable_source_and_recovery (test_recordings.RecordingTests.test_unavailable_source_and_recovery) ... ok
+test_real_http_auth_discovery_logs_and_allowlist (test_recordings.SupervisorHTTPTests.test_real_http_auth_discovery_logs_and_allowlist) ... ok
 
 ----------------------------------------------------------------------
-Ran 30 tests in 5.788s
+Ran 50 tests in 7.799s
 
 OK

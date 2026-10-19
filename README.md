@@ -1,44 +1,49 @@
 # Diagnostic Hub · Signalraum
 
-Ein lesender Diagnose-Hub als Home-Assistant-Add-on. Er erkennt evcc-Störungen, sichert die verfügbare Vorgeschichte und ergänzt einen Nachlauf – auch über einen Add-on-Neustart hinweg. RCT Power ist der erste Diagnose-Schwerpunkt; Zigbee2MQTT und NIBE Control sind geplant.
+**App auswählen → vorhandene Logstufe filtern → Zeitfenster aufnehmen.**
 
-**Version 0.2.0** · `aarch64` (Raspberry Pi 5) und `amd64` · Deutsche Ingress-Oberfläche
+Diagnostic Hub erkennt installierte Home-Assistant-Apps über den Supervisor und bietet deren Containerlogs an. Starte zum Beispiel eine **12-Stunden-Aufnahme mit DEBUG und höher**, beende sie bei Bedarf selbst und lade die gesicherten Daten als Text oder gzip herunter. Logstufen und Geräte werden nicht verändert.
 
-![Diagnoseübersicht mit synthetischem Testfall](reports/desktop.png)
+**Version 0.3.0** · Raspberry Pi 5 / `aarch64` und `amd64` · Deutsche mobile Ingress-Oberfläche
 
-## Installation
+![App-Auswahl, Logfilter und Aufnahmezeitfenster mit synthetischen Daten](reports/desktop.png)
 
-Voraussetzung: Home Assistant mit Supervisor/Add-on-Unterstützung, insbesondere Home Assistant OS. Home Assistant Container allein unterstützt keine Add-ons.
+## Neu in 0.3.0
 
-1. **Einstellungen → Add-ons/Apps → Store → ⋮ → Repositories** öffnen (Bezeichnungen können je nach HA-Version variieren).
-2. Diese vollständige URL hinzufügen:
+- Automatisch erkannte installierte Apps, zum Beispiel evcc, Zigbee2MQTT oder NIBE Control **sofern als App/Add-on installiert**. Integrationen sind keine separaten Add-ons; ihre Meldungen können im ebenfalls angebotenen Home-Assistant-Core-Log stehen.
+- App → Logquelle → TRACE/DEBUG/INFO/WARN/ERROR-Filter → Aufnahmedauer und Prüfintervall. Die konfigurierbare evcc-Systemlog-API bleibt eine zusätzliche Quelle für lokale oder externe evcc-Instanzen.
+- **Manuelle Aufnahme als Standard**, keine dauerhafte Logsammlung im Leerlauf. Die bisherige automatische evcc-Fehlersicherung ist zusätzlich einschaltbar.
+- Start/Beenden, fester Endzeitpunkt, optionaler Ausgangspuffer, Zwischenstand- und Abschlussdownload. Standard: zwölf Stunden, 15 Sekunden Prüfintervall. Bis zu acht gleichzeitige Aufnahmen; getrennte Quellen werden mit bis zu vier parallelen Abrufen gelesen.
+- Logs und Leseposition werden gemeinsam in SQLite gespeichert. Neustarts setzen weder Endzeit noch bereits gesicherte Logs zurück. Abrufpausen, Pufferrotation und Kapazitätsgrenzen werden sichtbar gemacht.
+
+## Installation oder Update
+
+Home Assistant mit Supervisor/Add-on-Unterstützung erforderlich, insbesondere Home Assistant OS. Home Assistant Container allein unterstützt keine Add-ons.
+
+1. Im Add-on-/App-Store unter **⋮ → Repositories** diese URL hinzufügen:
    ```text
    https://github.com/Soul7495/-HA-Signalraum
    ```
-3. Store aktualisieren, **Diagnostic Hub** auswählen und installieren. Der Supervisor baut das Image für deine Architektur aus dem Dockerfile; ein GHCR-Image ist nicht erforderlich.
-4. In der Konfiguration die **evcc-Adresse** deiner Anlage eintragen. Bei geschütztem evcc den dort erzeugten API-Schlüssel hinterlegen. Der voreingestellte Host ist ein Beispiel und muss auf deiner Anlage geprüft werden.
-5. Add-on starten und **Weboberfläche öffnen** wählen. Zugriff erfolgt ausschließlich über Home Assistant Ingress; es wird kein Host-Port geöffnet.
+2. **Diagnostic Hub** installieren bzw. auf **0.3.0** aktualisieren und neu starten. Supervisor baut das passende Image aus dem Dockerfile.
+3. Die neue Version benötigt `hassio_api: true` und die Supervisor-Rolle `manager` für appübergreifende Logzugriffe. Sie verwendet daraus ausschließlich die freigegebenen **GET-Endpunkte**, keine Start-/Stop-/Optionszugriffe auf andere Apps. Es wird kein Host-Port freigegeben.
+4. **Weboberfläche öffnen**, **Neu erkennen**, App und Logquelle wählen. Die evcc-Adresse muss für automatisch erkannte Containerlogs nicht eingetragen werden. Nur für die zusätzliche evcc-Systemlog-API ist eine passende URL/API-Authentifizierung erforderlich.
+5. Logfilter und Dauer wählen, **Aufnahme starten**. DEBUG/TRACE müssen in der betreffenden App bereits erzeugt werden; das stellt der Betreiber dort selbst ein.
 
-[Einrichtung, Verhalten und Grenzen](diagnostic_hub/DOCS.md) · [Tatsächliche Prüfungen](reports/VERIFICATION.md)
+Beim Update wird die automatische evcc-Fehlersicherung ohne explizite Option `automatic_evcc_enabled: true` ausgeschaltet. Bisherige Diagnosefälle bleiben innerhalb der Aufbewahrungs-/Speicherregeln verfügbar.
 
-## Was gesichert wird
+[Einrichtung, Aufnahmeregeln und Grenzen](diagnostic_hub/DOCS.md) · [Prüfbericht](reports/VERIFICATION.md) · [Änderungen](diagnostic_hub/CHANGELOG.md)
 
-- `GET /api/system/log?level=TRACE&count=10000`, standardmäßig alle 15 Sekunden; Vertrag anhand **evcc 0.317.1 Stable** geprüft.
-- ERROR/FATAL und relevante WARN-, RCT-, Timeout-, Verbindungs- und Messwert-Ereignisse. Auch nicht erreichbarer evcc-Systemlog wird mit letzter verfügbarer Vorgeschichte dokumentiert.
-- Sofort maximal 10.000 verfügbare Zeilen; danach beobachtete neue Zeilen über etwa zwei Minuten. Gleiche Fehler werden im festen Zweiminutenfenster zusammengefasst.
-- 14 Tage Aufbewahrung, 100 MiB Speichergrenze (1 MiB = 1.048.576 Bytes), gzip standardmäßig aktiv.
-- Selbstbeschreibende Diagnoseblöcke unter `/share/error_logger/evcc/`, inklusive Ursprung, Auslöser, Zeit, Wiederholungen, Zustand und Datenlücken. Entpackter Text und Original sind direkt herunterladbar.
-- Keine Schreibzugriffe auf evcc, keine Änderungen an RCT-Registern und keine automatische Geräte- oder KI-Steuerung.
+## Grenzen
 
-## Prüfstatus
+Automatisch erkannt werden **installierte Supervisor-Apps**, keine beliebigen externen Dienste oder dedizierten Logdateien jeder Integration. TRACE ist ein Filter verfügbarer Zeilen und wird nicht aktiviert. Ohne eingeschlossenen Ausgangspuffer beginnt die Datenabdeckung beim ersten erfolgreichen Abruf. Identische volle Logpuffer ohne Sequenznummern bleiben grundsätzlich mehrdeutig.
 
-Unit-/HTTP-Integrationstests, Chromium-Downloads hinter einem lokalen Ingress-Testproxy, schmale Touch-Ansicht und Container-Builds wurden ausgeführt. Das amd64-Image wurde mit der tatsächlichen App, simuliertem evcc und Neustart geprüft.
+Standardmäßig 14 Tage Aufbewahrung und **100 MiB Gesamtgrenze**. Für atomare Datenbanktransaktionen wird Journalplatz reserviert; bei voller Aufnahmekapazität endet eine Aufnahme vorzeitig und behält bisherige Daten. Mehrere intensive Quellen können diese Grenze schon vor zwölf Stunden erreichen. Details zur Aufteilung und zu alten Diagnosefällen stehen in DOCS.md.
 
-**Noch offen:** Installation auf deinem Home Assistant, Ausführung auf dem Raspberry Pi 5, reale evcc/RCT-Fehler und Downloads in deiner Android-App sowie über deinen Fernzugriff. Der Testproxy ist kein echter Supervisor. Details und Befehle stehen im Prüfbericht. GitHub-Actions-Läufe sind unabhängig vom hier ausgeführten lokalen Prüfstand zu bewerten.
+Die Produktivanlage, reale Android-App-/Fernzugriffsdownloads und ein echter zwölfstündiger Lauf müssen weiterhin separat geprüft werden. Lokale Tests verwenden simulierte Geräte und Zeiten; sie ersetzen keine Abnahme auf deinem Pi.
 
 ## Entwicklung
 
-Laufzeit ausschließlich Python-Standardbibliothek; keine pip-Installation im Add-on erforderlich.
+Die Laufzeit verwendet nur Python-Standardbibliothek, inklusive SQLite. Keine Laufzeit-pip-Pakete erforderlich.
 
 ```sh
 pip install -r requirements-dev.txt
@@ -48,10 +53,10 @@ python scripts/check_project.py
 python -m unittest discover -s tests -v
 python -m playwright install chromium
 python scripts/browser_check.py
-docker build --build-arg BUILD_ARCH=amd64 -t diagnostic-hub:0.2.0 diagnostic_hub
-docker run --rm -i diagnostic-hub:0.2.0 python - < scripts/container_smoke.py
+docker build --build-arg BUILD_ARCH=amd64 -t diagnostic-hub:0.3.0 diagnostic_hub
+docker run --rm -i diagnostic-hub:0.3.0 python - < scripts/container_smoke.py
 ```
 
-Für lokale UI-Entwicklung kann `DIAGNOSTIC_HUB_DEV=1` gesetzt werden; der Server bindet dann ausschließlich an Loopback und umgeht die Ingress-IP-Prüfung. Diese Einstellung ist keine Home-Assistant-Option und wird im Add-on nicht gesetzt. `DIAGNOSTIC_HUB_DATA` und `DIAGNOSTIC_HUB_OPTIONS` können für isolierte Testdaten angepasst werden.
+`DIAGNOSTIC_HUB_DEV=1` bindet den lokalen Entwicklungsserver nur an Loopback und umgeht ausschließlich für Tests die Ingress-IP-Prüfung. Diese Variable ist keine Add-on-Option. `DIAGNOSTIC_HUB_DATA` und `DIAGNOSTIC_HUB_OPTIONS` isolieren Testdaten.
 
-Bei Erweiterungen den Adaptervertrag in `evcc.py` verwenden und Zustand, Datenlücken, Speichergrenze sowie Downloadverhalten beibehalten. Produkt- und Oberflächenentscheidungen stehen in [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md) und [UX-CONTRACT.md](UX-CONTRACT.md).
+Produkt-/Designverträge: [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), [UX-CONTRACT.md](UX-CONTRACT.md).

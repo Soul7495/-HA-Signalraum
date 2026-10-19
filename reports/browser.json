@@ -1,6 +1,7 @@
 {
   "environment": "Chromium + local Ingress proxy; not Home Assistant Android app",
   "checks": [
+    "manual 12-hour DEBUG profile: discovery, validation/focus, native select, preview download, start, filtered recording download, stop",
     "empty state and base prefix without trailing slash",
     "desktop text and gzip downloads preserve payload",
     "details keyboard navigation and scrollbar baseline",

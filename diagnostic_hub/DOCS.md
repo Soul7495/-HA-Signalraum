@@ -1,76 +1,87 @@
-# Diagnostic Hub 0.2.0
+# Diagnostic Hub 0.3.0
 
-## Voraussetzungen und Einrichtung
+## Arbeitsweise und Erkennung
 
-Home Assistant OS oder eine Installation mit Supervisor/Add-on-Unterstützung; Raspberry Pi 5 nutzt `aarch64`. `amd64` wird ebenfalls unterstützt. Home Assistant Container ohne Supervisor kann dieses Repository nicht als Add-on installieren.
+Diagnostic Hub ist ein Home-Assistant-Add-on für gezielte Diagnoseaufnahmen. **Im Standardmodus werden keine Logs dauerhaft gelesen oder gespeichert.** Die UI erkennt installierte Apps über die Supervisor-Liste; Aufnahmen starten erst durch deine Aktion. Die ebenfalls mögliche automatische evcc-Fehlersicherung muss separat aktiviert werden.
 
-Repository `https://github.com/Soul7495/-HA-Signalraum` im Add-on-/App-Store hinzufügen. Add-on installieren, erreichbare evcc-Basisadresse und bei aktivierter evcc-Authentifizierung einen API-Schlüssel einstellen. Die Adresse muss HTTP(S) verwenden und darf keine Zugangsdaten, Queryparameter oder URL-Fragmente enthalten. Der Schlüssel bleibt in den HA-Optionen und wird nur als Bearer-Header an evcc gesendet. Redirects werden nicht verfolgt. Geänderte Optionen erfordern einen Add-on-Neustart.
+Die Hierarchie lautet **App → Logquelle → Stufenfilter → Zeitfenster**:
 
-Alle Optionen sind deutsch übersetzt:
+- Installierte Apps/Add-ons erhalten eine Containerlog-Quelle, unabhängig vom Produktnamen: evcc, Zigbee2MQTT, NIBE Control und andere.
+- Home Assistant Core wird zusätzlich angeboten. Meldungen integrierter Geräte können dort stehen. Integrationen sind keine eigenständigen Supervisor-Apps und werden nicht als solche erfunden.
+- Die optional konfigurierte evcc-Systemlog-API ist eine weitere Quelle für erreichbare evcc-Instanzen, auch außerhalb Home Assistant. Sie nutzt `GET /api/system/log?level=TRACE&count=10000`, geprüft gegen evcc 0.317.1 Stable.
+- App-spezifische Dateien außerhalb des Containerlogs, externe MQTT-Topics oder beliebige Dienste werden nicht automatisch erschlossen. Dafür sind weitere Adapter nötig.
 
-| Option | Standard | Bedeutung |
+**Neu erkennen** aktualisiert die App-Liste; während geöffneter UI wird die Metadatenliste höchstens einmal je Minute nachgeladen. Das ist keine dauerhafte Logaufnahme. Nur explizite Vorschau/Downloads und aktive Aufnahmen lesen Logs. Ausgefallene App-Erkennung erhält bekannte Quellen mit unbekanntem Status; neue Quellen werden erst nach erfolgreicher Erkennung angeboten.
+
+## Installation, Berechtigungen und Upgrade
+
+Repository `https://github.com/Soul7495/-HA-Signalraum` im App-/Add-on-Store hinzufügen. Home Assistant OS/Supervisor erforderlich. Add-on 0.3.0 installieren/aktualisieren, neu starten und über Ingress öffnen. Raspberry Pi 5 benötigt `aarch64`; außerdem `amd64` unterstützt. Das Image wird lokal aus den Quellen gebaut.
+
+Supervisor bietet keine passende reine Rolle zum Lesen aller App-Logs: `manager` ist die kleinste bestehende geeignete Rolle. Die Version setzt `hassio_api: true` / `hassio_role: manager`. Diese Rolle besitzt systemseitig weitere Rechte; der Adapter implementiert ausschließlich eine feste **GET-Allowlist**:
+
+- `/addons` – installierte Apps, keine Optionen oder Zugangsdaten aus anderen Apps;
+- `/addons/<validierter-slug>/logs` – Containerlog;
+- `/core/logs` – Core-Log.
+
+Keine Weiterleitung beliebiger URLs, keine App-Optionsänderungen, keine Start-/Stop-Befehle an andere Apps. Supervisor-Token wird aus der Laufzeit übernommen und nicht an die UI ausgegeben. Die bisherigen `/addons`-Routen werden in der aktuellen Supervisor-API aus Kompatibilitätsgründen weiterhin unterstützt.
+
+Referenzen: [Supervisor App-Liste](https://github.com/home-assistant/supervisor/blob/main/supervisor/api/apps.py), [Routen](https://github.com/home-assistant/supervisor/blob/main/supervisor/api/__init__.py), [Rollen](https://github.com/home-assistant/supervisor/blob/main/supervisor/api/middleware/security.py). Gegen den am 19.10.2026 gelesenen Quellstand geprüft; kein Ersatz für einen Test deines Supervisors.
+
+Beim Upgrade werden alte evcc-Diagnosefälle gelesen. Die automatische Fehlersicherung startet nur bei explizitem `automatic_evcc_enabled: true`. Ohne diese Option wird auf den gewünschten manuellen Standard gewechselt.
+
+## Beispiel: zwölf Stunden evcc-DEBUG
+
+1. Falls nötig DEBUG in **evcc selbst** einstellen. Diagnostic Hub verändert die Logstufe nicht und stellt sie auch nicht zurück.
+2. **Neu erkennen** wählen. Unter evcc das **Containerlog** auswählen; alternativ die zusätzliche **evcc · Systemlog-API**, wenn URL/Schlüssel korrekt konfiguriert sind.
+3. **DEBUG und höher**, **12 Stunden**, beispielsweise **15 Sekunden** einstellen.
+4. Entscheiden, ob der bereits vorhandene Puffer eingeschlossen werden soll. Ohne Häkchen dient der erste erfolgreiche Abruf nur als Startbasis. Seine älteren Zeilen werden nicht gespeichert; dadurch beginnt die tatsächliche Datenabdeckung erst bei diesem Abruf.
+5. **Aufnahme starten**. Der angezeigte Endzeitpunkt wird gespeichert. Zwischenstände können jederzeit heruntergeladen werden. **Aufnahme beenden** beendet nur die lokale Logsammlung und erhält bisherige Daten.
+6. Nach Ende als Text oder gzip herunterladen. Jede Aufnahme hat ihre eigenen Daten und Metadaten.
+
+UI: 0,25–168 Stunden; API: 1–10.080 Minuten. Prüfintervall 10–300 Sekunden. Bis zu acht gleichzeitige Aufnahmen; identische Quellen werden pro Pollrunde nur einmal gelesen, unterschiedliche Quellen mit maximal vier parallelen GETs. Endzeitpunkt ist fest, keine automatische Verlängerung. Nach Ablauf wird kein neuer Abruf mehr begonnen. Ein nach Ende eintreffender Abruf wird verworfen und als mögliche Lücke markiert. Ein manueller Stop während eines Abrufs verhindert dessen nachträgliche Speicherung.
+
+## Logstufen und Datenqualität
+
+TRACE zeigt alle vorhandenen erkannten Stufen; DEBUG enthält DEBUG/INFO/WARN/ERROR; entsprechend weiter bis ERROR/FATAL/CRITICAL. Ohne erkannte Stufe bleiben Zeilen als Kontext/Stacktrace erhalten. Die Erkennung orientiert sich an Stufenwörtern und ist bei frei formatierten Meldungen eine Heuristik. Sie ist keine Zusage, dass jede Quelle überhaupt TRACE/DEBUG liefert.
+
+Beim Supervisor werden explizit `lines=10000&no_colors=1` angefordert, statt dessen kleineren Standardausschnitt zu verwenden. Logs werden bis 4 MiB pro Antwort und maximal 10.000 Pufferzeilen gelesen. Größere Antworten werden sichtbar abgewiesen. Neue Zeilen werden über linearen Text-/Hash-Überlappungsvergleich ermittelt. Ohne Überlappung kann ein Neustart oder Pufferverlust vorliegen; mögliche Duplikate/fehlende Zeilen werden markiert. Ein voller identischer Puffer ist ohne Sequenznummern nicht eindeutig von einer Rotation unterscheidbar. Downloads dokumentieren Beobachtungszeiten in UTC; die UI zeigt Zeiten im lokalen Browser-Zeitraum.
+
+## Neustart und Speicherung
+
+Manuelle Aufnahmen liegen in `/share/error_logger/recordings.sqlite3`. Die Datenbank enthält Profile, Zeitpunkte, Logblöcke, Lesepositionen und Lücken. **Logblock und Cursor werden in derselben SQLite-Transaktion** mit `synchronous=FULL` gespeichert. Unveränderte Cursor werden nicht erneut geschrieben. Das verringert Schreiblast bei unveränderten Puffern. Datenbankdateien nicht im laufenden Betrieb manuell bearbeiten.
+
+Nach einem Add-on-Neustart werden aktive Aufnahmen bis zu ihrem ursprünglichen Endzeitpunkt fortgeführt. Eine längere Pause wird als Lücke markiert. Ist die Endzeit bereits abgelaufen, wird nicht neu gestartet. Ohne erfolgreichen Abruf bzw. bei größerer Lücke am Aufnahmeende lautet der Zustand unvollständig. Während das Add-on aus ist, kann es keine Logs sammeln. Hardware-/Dateisystemschäden können auch eine transaktionale Datenbank beeinträchtigen; dafür bleiben Home-Assistant-Backups relevant.
+
+Downloads erzeugen einen konsistenten Text-/gzip-Zwischenstand aus gespeicherten Daten, ohne die Aufnahme zu beenden. Ein weiterer späterer Download kann zusätzliche Zeilen enthalten. Endedaten bleiben bis zur konfigurierten Aufbewahrung verfügbar. Seiten umfassen maximal 20 Aufnahmen; der UI-Seitenzustand steht in der URL.
+
+## Gemeinsame Speichergrenze und Aufbewahrung
+
+Standard: 14 Tage und 100 MiB. MiB bedeutet 1.048.576 Bytes. Die gemeinsame Obergrenze umfasst verwaltete reguläre Dateien unter `/share/error_logger/`, inklusive Datenbank, Cursor, Archive und zeitweisem Rollback-Journal. Dateisystem-Block-/Metadaten-Overhead und Home-Assistant-eigene Containerlogs zählen nicht dazu. Keine fremden Dateien in diesem verwalteten Verzeichnis ablegen.
+
+Für SQLite wird konservativ zusätzlicher Journalplatz reserviert. Deshalb entspricht die maximale Nutzlogmenge nicht der gesamten eingestellten MiB-Zahl. Bei ausgeschalteter Automatik wird vorhandener evcc-Altbestand berücksichtigt; die übrige Kapazität wird auf Datenbank und Journalreserve verteilt. Bei eingeschalteter Automatik wird bis zur Hälfte der Grenze für deren Archivbereich reserviert; die andere Hälfte enthält Datenbank und Journalreserve. Alte automatische Fälle können gemäß bisherigen Speicherregeln entfernt werden, auch beim Upgrade oder bei einer kleineren Grenze.
+
+Erreicht eine manuelle Aufnahme ihre Kapazität, endet sie **sichtbar mit Speichergrenze erreicht**. Bisherige Blöcke werden nicht still für neuere Zeilen überschrieben. Bei acht intensiven Aufnahmen oder TRACE kann eine 100-MiB-Grenze schon vor zwölf Stunden erreicht werden. Gegebenenfalls Limit vorher erhöhen, Filter enger wählen oder Zwischenstände extern sichern. Eine beendete Aufnahme setzt sich nach einer Limiterhöhung nicht automatisch fort; eine neue Aufnahme starten.
+
+Abgeschlossene/manuell beendete Aufnahmen werden nach dem konfigurierten Alter seit Start entfernt; aktive Aufnahmen bleiben bis zum Ende oder Kapazitätsstopp bestehen. Freie Datenbankseiten werden wiederverwendet und schrittweise freigegeben. Alte automatische evcc-Fälle bleiben unter `/share/error_logger/evcc/` und behalten ihre [bisherigen Regeln](AUTOMATIC.md).
+
+## Optionen
+
+| Option | Standard | Wirkung |
 |---|---|---|
-| `evcc_url` | `http://homeassistant.local:7070` | Beispieladresse; tatsächlichen evcc-Host/Port eintragen |
-| `evcc_api_key` | leer | Bei geschütztem evcc erforderlich |
-| `poll_seconds` | 15 | Prüfintervall, 10–300 Sekunden |
-| `retention_days` | 14 | Alter seit Fallanlage, 1–365 Tage |
-| `max_storage_mb` | 100 | MiB, 10–10.000; Dateien inklusive Cursor und Schreib-Staging |
-| `gzip_enabled` | true | Komprimierung neuer Archive; alte Archive bleiben lesbar |
+| `automatic_evcc_enabled` | false | Nur bei true zusätzliche automatische evcc-Fehlersicherung |
+| `evcc_url` | `http://homeassistant.local:7070` | Nur zusätzliche Systemlog-API; richtige Adresse eintragen oder leer lassen zum Ausblenden |
+| `evcc_api_key` | leer | Bearer-Schlüssel bei geschützter evcc-API |
+| `poll_seconds` | 15 | Prüfintervall der optionalen Automatik; manuelle Aufnahmen haben ihr eigenes Intervall |
+| `retention_days` | 14 | Aufbewahrung seit Fall-/Aufnahmestart |
+| `max_storage_mb` | 100 | Gemeinsame MiB-Obergrenze mit Transaktionsreserve |
+| `gzip_enabled` | true | Komprimierung neuer Logblöcke/automatischer Archive; Text-/gzip-Export immer verfügbar |
 
-## API-Vertrag: evcc 0.317.1 Stable
+Optionen ändern und Add-on neu starten. Eine leere evcc-Adresse ist nur bei ausgeschalteter evcc-Automatik zulässig. Containerlogs benötigen keine eigene evcc-URL/API-Schlüssel, sondern den Supervisor-Zugriff.
 
-Quellcode-Tag **`0.317.1`** (ohne `v`), Commit `259d5fd99774ccb3690eb0de8ebbf873089bd13d`:
+## Downloads, Zugriff und Abnahme
 
-- [Systemlog-Handler](https://github.com/evcc-io/evcc/blob/0.317.1/server/http_site_handler.go): GET `/api/system/log`, `level`, `count`, optional `format=txt`; standardmäßig JSON-Array von Strings.
-- [Ringpuffer](https://github.com/evcc-io/evcc/blob/0.317.1/util/logstash/log.go): separate TRACE-/übrige Puffer; chronologische Zusammenführung; `count=10000` begrenzt das Ergebnis.
-- [Authentifizierung](https://github.com/evcc-io/evcc/blob/0.317.1/server/http_auth.go): `Authorization: Bearer <API-Schlüssel>`.
+Text und gzip verwenden `Content-Disposition: attachment`, feste Dateinamen, Inhaltslänge und `no-store`; gzip ist keine zusätzliche HTTP-Transportkomprimierung. Sämtliche Pfade nutzen den Ingress-Prefix, auch ohne abschließenden Slash. Produktionszugriff bleibt auf Supervisor-Ingress-IP beschränkt und das Panel für Administratoren konfiguriert. Start/Stop erfordern JSON und einen eigenen Request-Header; es gibt keine CORS-Freigabe. Wiederholte Startanfragen derselben Anfrage-ID erzeugen keine doppelten Aufnahmen.
 
-TRACE filtert nur tatsächlich gespeicherte Zeilen. Das Add-on aktiviert keine Logstufe und kann nie erzeugte oder bereits verdrängte Zeilen nicht nachliefern. Ein API-Vertragsabgleich ersetzt keinen Abruf deiner produktiven Instanz.
+Token-/Passwortmuster und bekannte API-/Supervisor-Schlüssel werden vor Speicherung redigiert. Geräte-/Netzwerkdetails können weiterhin privat sein; Daten vor Weitergabe prüfen. Es werden keine Logs/URLs automatisch an eine KI geschickt.
 
-Antworten sind auf 4 MiB begrenzt; zu große oder unlesbare Antworten werden als Fehler angezeigt. JSON-Null/leer und reiner Logtext werden verarbeitet; eine Login-HTML-Seite wird nicht als Log gespeichert. Es gibt keine Schreib-, Steuerungs- oder Registerzugriffe.
-
-## Fallaufnahme und Wiederholungen
-
-Der erste erfolgreiche Abruf wird ebenfalls auf Fehler geprüft. Solche Fälle tragen `origin=initial`: Die Fehler können älter sein und der Erkennungszeitpunkt ist nicht ihr tatsächlicher Entstehungszeitpunkt. `origin=new` bedeutet durch Überlappung als neu beobachtete Einträge; `resync` kennzeichnet einen neu eingelesenen Puffer ohne bestätigte Kontinuität; `collector` bedeutet fehlgeschlagener Logabruf.
-
-Der größte exakte Suffix-/Prefix-Überlapp wird in linearer Zeit ermittelt. Der persistierte Cursor enthält nur Zeilen-Hashes, keine Klartextlogs. Anhängen wiederholter identischer Zeilen wird erkannt, solange die Pufferlänge/Überlappung es unterscheidbar macht. Zeitstempel werden für Fehlerfingerprints entfernt; Gerätenummern, Fehlercodes und Messwerte bleiben erhalten.
-
-**API-Grenze:** Ohne Sequenznummern ist ein voller Puffer mit identischen Zeilen vor und nach Rotation nicht unterscheidbar. Ohne Überlappung können Neustart, schnelle Rotation und größere Unterbrechung ebenfalls nicht sicher getrennt werden. Die Oberfläche und offene Fälle kennzeichnen diese Ungewissheit. Nach Resynchronisierung können alte Fehler erneut als Fälle erscheinen. Die Anzahl zählt beobachtete passende Zeilen, keine unabhängig verifizierten Geräteausfälle.
-
-Ein Fall sichert unmittelbar den zuletzt abgerufenen Puffer (maximal 10.000 Zeilen), anschließend neue beobachtete Zeilen bis zum festen Zeitpunkt etwa 120 Sekunden nach Erkennung. Wiederholungen verlängern dieses Fenster nicht. Die nächste Prüfung schließt den Fall ab; verspätete Prüfungen werden zeitlich dokumentiert. Nachlauf ebenfalls maximal 10.000 Zeilen/4 MiB. Bei über 32 unterschiedlichen Fehlerfingerprints in einem Abruf werden 31 einzeln und der Rest in einem ausdrücklich bezeichneten Häufungsfall erfasst; dessen Vorgeschichte enthält weiterhin den gesamten verfügbaren Snapshot.
-
-Fällt der Logabruf aus, wird die letzte verfügbare Vorgeschichte dieser laufenden Sitzung in einem Zugriffsfalldiagnoseblock gesichert. Unmittelbar nach einem Neustart vor dem ersten erfolgreichen Abruf kann diese leer sein. Bestehende offene Fälle behalten ihre bereits gesicherte Vorgeschichte.
-
-## Neustart, Aufbewahrung und Speichergrenze
-
-Jeder Diagnoseblock enthält Metadaten, Vorgeschichte und bereits gesammelten Nachlauf. Dateischreiben erfolgt atomar mit fsync und Rename. Offene Fälle werden beim Start aus den Archiven wiederhergestellt; ein abgelaufener Nachlauf wird auch bei weiterem Abruffehler abgeschlossen und als unvollständig gekennzeichnet. Beobachtete längere Abrufpausen sowie fehlende Überlappung erzeugen Datenlücken. Während das Add-on ausgeschaltet ist, kann es keine Logs sammeln.
-
-Archive und Cursor sind einzeln atomar, **keine gemeinsame Datenbanktransaktion**. Ein harter Stromverlust genau zwischen Fall- und Cursor-Schreiben kann dazu führen, dass derselbe Eintrag beim Wiederanlauf erneut gezählt wird. Bereits veröffentlichte Dateien bleiben als gültiger alter oder neuer Stand erhalten; nicht bestätigte Daten können bei einem Hardware-/Dateisystemfehler verloren gehen. Der Cursor wird bei veränderten Puffern geschrieben; unveränderte Antworten erzeugen keine unnötigen Cursor-Schreibvorgänge.
-
-Bereinigung läuft bei erfolgreichen und fehlgeschlagenen Prüfungen. Alter wird ab Fallanlage gerechnet. Danach wird die Speichergrenze durch Entfernen ältester abgeschlossener, bei Bedarf auch offener Fälle eingehalten. Speichergrenze hat Vorrang: Die Oberfläche zeigt einen Verlust offener Nachläufe an, ohne später auf gelöschte Dateien zuzugreifen. Die Warnung gilt für die laufende Sitzung. Platz für die atomare neue Datei wird vor dem Schreiben reserviert, einschließlich vorhandener Zielversion. Wenn der vollständige Nachlauf nicht in den atomaren Schreibplatz passt, wird nur der Nachlauf gekürzt und die Lücke markiert; die Vorgeschichte bleibt erhalten. Ein generell zu großer Einzelblock schlägt sichtbar fehl, ohne andere Fälle unnötig zu löschen. Die Grenze umfasst alle regulären Dateien im verwalteten evcc-Ordner, einschließlich gzip-Cursor und Staging; Dateisystem-Block-/Metadaten-Overhead und Home-Assistant-eigene Containerlogs sind nicht enthalten. Manuell eingefügte fremde Dateien sollten hier nicht liegen, da sie ebenfalls zur Bereinigung gehören.
-
-Speicherort: `/share/error_logger/evcc/`. Neue Diagnoseblöcke sind `.json.gz` oder `.json`. Alte `.log.gz`/`.log`-Dateien der 0.1.0-Version bleiben als Altbestand sichtbar und herunterladbar.
-
-## Oberfläche und Downloads
-
-Status, letzter erfolgreicher Abruf, offene Nachläufe, konfigurierte Grenzen, Quelle/Kategorie, Auslöser, Zeitpunkt, beobachtete Wiederholungen, Zeilenzahlen und Datenlücken. 20 Fälle pro Seite, mobile Karten, native aufklappbare Details und Tastaturfokus.
-
-- **Text herunterladen**: entpackter `.txt`-Block mit Metadaten, Vorgeschichte und Nachlauf.
-- **Original**: gespeichertes JSON-/gzip-Archiv, ohne doppelte HTTP-gzip-Komprimierung.
-- **Teilen vorbereiten / Teilen öffnen**: nur bei Browser-Unterstützung für Datei-Sharing; zwei bewusste Klicks halten die notwendige Benutzeraktivierung ein.
-
-API-, Asset- und Downloadlinks nutzen den Supervisor-Header `X-Ingress-Path`; kein von einem fehlenden abschließenden Slash abhängiger Pfad. Download wird unter derselben Sperre wie Bereinigung/Ersetzung in Speicher übernommen. Danach kann die Datei entfernt oder aktualisiert werden, ohne den laufenden Download zu beschädigen. Ein zwischen Listenanzeige und Klick abgelaufener Block liefert 404 und kann nicht mehr geladen werden.
-
-Kein freigegebener Host-Port. Produktionszugriff ist auf die Supervisor-Ingress-IP `172.30.32.2` beschränkt; Admin-Panel entsprechend konfiguriert. Passwort-/Tokenmuster und der konfigurierte API-Schlüssel werden vor Speicherung entfernt; automatische Redaktion garantiert keine vollständige Entfernung privater Geräte-/Netzwerkdaten. Diagnoseblöcke vor Weitergabe prüfen.
-
-Chromium am Desktop und in schmaler Touch-Ansicht wurde hinter einem lokalen Ingress-Testproxy praktisch geprüft. **Noch nicht praktisch bestätigt:** echte Supervisor-Installation, Android Companion App, natives Dateiteilen und Download über den tatsächlichen Fernzugriff. Falls eine WebView Downloads nicht übernimmt, dieselbe HA-Oberfläche im Browser öffnen; auf deiner Anlage beide Downloadvarianten und Dateiinhalte prüfen.
-
-## Abnahme auf deiner Anlage
-
-1. Repository hinzufügen, Installation/Start auf dem Pi 5 prüfen; Status „Verbunden“ bei evcc 0.317.1 kontrollieren.
-2. Bei einem natürlich auftretenden RCT-Fehler Auslöser, Vorgeschichte und Nachlauf prüfen. Keine absichtlichen Registeränderungen nötig.
-3. Während eines offenen Falls Add-on neu starten; Fall und Vorgeschichte müssen erhalten bleiben. Eine längere Ausschaltpause muss als Lücke sichtbar werden.
-4. Text und Original am Desktop, in der Android-App und über Fernzugriff laden, öffnen und inhaltlich vergleichen. Dateiteilen separat prüfen, falls angeboten.
-5. Speicherverbrauch und Dateialter über mehrere Tage beobachten. Vor kleinen Testgrenzen benötigte Diagnoseblöcke sichern: Aufbewahrung kann Dateien entfernen.
-
-Ergebnisse und offene Punkte unter `reports/VERIFICATION.md`. Zigbee2MQTT und NIBE Control sind noch nicht implementiert. Eine automatische KI-Auswertung ist nicht enthalten; der Download dient späterer Analyse.
+**Vor Ort noch prüfen:** Rollenübernahme und App-Liste nach Update, realer Supervisor-/Core-Logabruf, tatsächliche evcc-Logstufen, zwölf Stunden Betrieb auf dem Pi, Android Companion App und tatsächlicher Fernzugriff. Chromium-Touchsimulation ist kein Android-App-Test. Bei WebView-Downloadproblemen dieselbe Oberfläche im Browser öffnen und Text/gzip vergleichen. Der Prüfbericht nennt genau die ausgeführten Tests.

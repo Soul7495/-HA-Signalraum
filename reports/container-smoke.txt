@@ -1,1 +1,2 @@
-PASS: actual app startup, evcc GET, automatic capture, gzip download, durable restart
+PASS: actual app startup, evcc GET, optional automatic capture, gzip download, durable restart
+PASS: manual idle without log requests, 12-hour DEBUG profile, recording, restart/cursor/deadline, stop, gzip export

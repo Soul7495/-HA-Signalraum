@@ -1,7 +1,7 @@
 name: Diagnostic Hub
-version: 0.2.0
+version: 0.3.0
 slug: diagnostic_hub
-description: Lesender Diagnose-Hub mit evcc/RCT-Fehlererkennung und dauerhaften Diagnosefällen
+description: Manuelle Diagnoseaufnahmen für Home-Assistant-Apps mit automatischer Quellenerkennung
 url: https://github.com/Soul7495/-HA-Signalraum
 arch:
   - aarch64
@@ -9,6 +9,8 @@ arch:
 startup: application
 boot: auto
 init: false
+hassio_api: true
+hassio_role: manager
 ingress: true
 ingress_port: 8099
 ingress_stream: true
@@ -25,6 +27,7 @@ options:
   retention_days: 14
   max_storage_mb: 100
   gzip_enabled: true
+  automatic_evcc_enabled: false
 schema:
   evcc_url: str
   evcc_api_key: password
@@ -32,3 +35,4 @@ schema:
   retention_days: int(1,365)
   max_storage_mb: int(10,10000)
   gzip_enabled: bool
+  automatic_evcc_enabled: bool

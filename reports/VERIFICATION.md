@@ -1,52 +1,49 @@
-# Prüfbericht – Diagnostic Hub 0.2.0
+# Prüfbericht – Diagnostic Hub 0.3.0
 
-Stand: 13.10.2026. Prüfungen in einer Linux/amd64-Entwicklungsumgebung, ohne Verbindung zur produktiven Home-Assistant-/evcc-/RCT-Anlage. Alle Geräteereignisse und Screenshots verwenden synthetische Testdaten.
+Stand 19.10.2026. Linux/amd64-Entwicklungsumgebung, synthetische Geräte-/App-Daten. Das vom Nutzer bereitgestellte Android-Video wurde angesehen: Es zeigt die 0.2.0-Oberfläche und einen fehlgeschlagenen evcc-API-Abruf, keinen bestätigten erfolgreichen Produktiv-Logzugriff. Das Video selbst wurde nicht veröffentlicht.
 
-| Prüfung | Tatsächliches Ergebnis | Grenze |
+## Tatsächlich ausgeführt
+
+| Prüfung | Ergebnis | Praktische Grenze |
 |---|---|---|
-| Ursprüngliches ZIP | 3 bestehende Unit-Tests bestanden | Keine Container-/HA-Prüfung im Original |
-| Endgültige Unit-/HTTP-Tests | **30 bestanden**, `python -m unittest discover -s tests -v` | Lokale Testserver und simulierte Zeit/Ereignisse |
-| Überlappungsvergleich | Duplikate, Rotation, Resync, 1.500 zufällige Vergleichsfolgen | Keine Sequenznummern in evcc-API |
-| Fallaufnahme | Ausgangsfehler, Wiederholungen, feste Fenster, Zugriffsausfall, Fehlerhäufung | Keine reale RCT-Instanz |
-| Neustart und Nachlauf | Cursor/Fälle wiederhergestellt, Vorgeschichte/Nachlauf erhalten, Ausfall gekennzeichnet | Harter Stromverlust zwischen zwei unabhängigen Dateitransaktionen kann doppelte Beobachtungen verursachen |
-| Speicherverwaltung | Alter, harte Grenze, Schreib-Staging, aktive Fallentfernung, unmöglicher Einzelblock, Nachlaufkürzung | Dateisystem-/HA-Logging-Overhead nicht enthalten |
-| Downloads | Text/gzip und Inhalt geprüft; laufender Download nach gleichzeitiger Entfernung bestanden | Kein echter Supervisor oder Android Companion |
-| Zugriff und Eingaben | Ingress-IP-Prüfung, direkte/spoofed Clients, Traversal, Symlink, fehlende Dateien, API-Auth, Redirect, HTML und Übergröße geprüft | HA-Berechtigungsmodell selbst nicht ausgeführt |
-| Browser | **Chromium 151**, Desktop 1440px und Touch-Viewport 390px; leer, Erfolg, Details, Keyboard, Fehler/Recovery, Pagination, Downloads; keine JavaScript-Fehler | Chromium-Touchsimulation ist keine Android-App, Datei-Sharing nicht auf realem Gerät getestet |
-| Metadaten | Repository-URL, Slug/Version, Architekturen, Ingress, Share-Mapping, Optionsschema/Übersetzung geprüft | Projektprüfung, keine vollständige Supervisor-Installation |
-| Python-/JS-Prüfung | Ruff Check/Format, Python-AST, `node --check` bestanden | Keine zusätzliche Typchecker-Konfiguration vorhanden |
-| Design | Offizieller `@google/design.md`-Lint: 0 Fehler/0 Warnungen; Token-Drift-Prüfung bestanden; Premium-Static-Audit strict: 0 Befunde | Keine vollständige WCAG-Zertifizierung; Tastatur/Fokus und Touchlayout praktisch geprüft |
-| evcc-Vertrag | Quellcode von **0.317.1 Stable**, Commit `259d5fd99774ccb3690eb0de8ebbf873089bd13d` geprüft | Produktiver API-Abruf weiterhin offen |
-| amd64-Docker-Build | **Bestanden** | Linux/amd64 |
-| amd64-Container-Lebenszyklus | **Bestanden**: tatsächlicher App-Start, evcc-GET, automatische Aufnahme, gzip-Download, Wiederanlauf ohne Verdopplung | Simulierter evcc im selben isolierten Container |
-| aarch64-Docker-Build | **Bestanden**, `--platform linux/arm64` | Keine Ausführung auf Pi 5 |
-| aarch64-Container-Ausführung | **Nicht erfolgreich ausführbar:** `exec format error` | Entwicklungsmaschine hat keine ARM-/QEMU-Ausführung; nicht als bestandener Test gezählt |
-| GitHub Actions | Workflow für Tests, Browser und beide Plattformen vorbereitet | Tatsächlichen Remote-Run separat prüfen; lokale Ergebnisse sind kein Nachweis eines erfolgreichen Actions-Laufs |
+| Unit-/HTTP-Tests | **50 bestanden**, `python -m unittest discover -s tests -v` | Testserver, temporäre Daten, simulierte Uhr |
+| Supervisor-Vertrag | Echter HTTP-Test von GET `/addons`, App-/Core-Logs, Bearer-Header, explizit `lines=10000&no_colors=1`, Redaktion und fester Pfad-Allowlist | Kein echter Supervisor auf Nutzeranlage |
+| App-Erkennung | evcc, Zigbee2MQTT, NIBE Control und Core anhand synthetischer installierter App-Liste; eigene/ungültige App ausgefiltert | Keine pauschale Erkennung externer Dienste/Integrationen |
+| Manueller Standard | Ohne aktive Aufnahmen kein Logabruf | Metadatenliste und Aufbewahrung bleiben möglich |
+| Zwölfstundenprofil | 43.200 Sekunden festes Zeitfenster, DEBUG-Filter, optionaler Ausgangspuffer, Stop und Endzeit geprüft | Uhr simuliert; kein zwölfstündiger Echtzeit-Lauf |
+| Wiederanlauf | Daten, Cursor, Zähler und ursprüngliches Aufnahmeende erhalten; überfällige Aufnahme wird nicht neu gestartet | Kein Hardware-Stromausfalltest |
+| Transaktionsfehler | Erzwungener Fehler beim Zählerupdate rollt zuvor geschriebenen Logblock und Cursor gemeinsam zurück | SQLite-Transaktion in lokaler Testumgebung |
+| Gleichzeitige Quellen | Langsamer Logabruf blockiert gesunde Quelle nicht; ein Quellabruf pro Runde für gleiche Quelle; maximal vier Worker | Keine Langzeitlastmessung mit acht realen Apps |
+| Stop während Abruf | Nachträglich eintreffende Daten werden nicht mehr gespeichert | Lokales Thread-/Netzwerkszenario |
+| Speicher | Journalreserve, Kapazitätsstopp mit Erhalt vorheriger Blöcke, Aufbewahrung/Kaskadenlöschung geprüft | Aufnahmedaten können lange vor zwölf Stunden die Nutzkapazität erreichen |
+| Zugriff | JSON-/Request-Header für Start/Stop, idempotenter Start, Source-Allowlist; bisherige Ingress-/Traversal-/Symlink-Tests weiterhin bestanden | HA-Berechtigungsmodell nicht real ausgeführt |
+| Regression 0.2.0 | Alte 30 Collector-/Adapter-/Downloadtests weiterhin bestanden | Automatik nun bewusst nur bei expliziter Option aktiv |
+| Browser | Chromium: App-Hierarchie, natives Select-Popup, Formfehler/Fokus, Profilstart, Vorschau, Debug-Filter, Textdownload, Stop; alte Fälle und Seitennavigation | Lokaler Ingress-Testproxy |
+| Mobil | 390px Touch-Viewport, kein horizontaler Überlauf, native Auswahl und Textdownload, Aktionen ≥44px | Kein echter Android Companion / WebView / Dateiteilen |
+| Docker amd64 | Build und tatsächlicher App-Lebenszyklus erfolgreich: optionale Automatik, manueller Leerlauf ohne GETs, Zwölfstundenprofil, Aufnahme, Neustart, Endzeit/Cursor, Stop/gzip-Export | Simulierter evcc im Container |
+| Docker aarch64 | **Build erfolgreich**, `--platform linux/arm64` | Keine native Ausführung auf dem Raspberry Pi 5 in dieser Umgebung; CI kann QEMU verwenden |
+| Statisch | Ruff Check/Format, Python-/JS-Syntax, Metadaten, Übersetzungen und Token-Drift bestanden | Keine zusätzliche Typchecker-Konfiguration |
+| Design | DESIGN.md-Lint 0 Fehler/0 Warnungen, Premium-Audit strict 0 Befunde, reale Browser-Screenshots | Keine vollständige WCAG-Zertifizierung |
 
-## Containeridentität
+Die Browserprüfung umfasst auch leere Zustände, API-Fehler mit veralteten Daten, Wiederherstellung, URL-Seitenzustand, gzip-Inhalt und Downloads während paralleler Dateientfernung. JavaScript-Laufzeitfehler: keine. Die neue Supervisor-Logquelle wird zusätzlich zum bisherigen evcc-API-Adapter angeboten; sie löst die Notwendigkeit einer manuell erratenen evcc-URL für Containerlogs ab.
 
-Gepinnte Multiarch-Basis: `python:3.12-alpine@sha256:1b668429b3511ab407d8e00648891631b0b1a4d7e15e3ca70f38ab5b91ad4ab4`.
+## Containerstand
 
-Lokale fertige Image-IDs (keine veröffentlichten Registry-Images):
+Gepinnte Basis: `python:3.12-alpine@sha256:1b668429b3511ab407d8e00648891631b0b1a4d7e15e3ca70f38ab5b91ad4ab4`.
 
-- amd64: `sha256:ac7b6ea9268d0add77737c1bd2754c27952e0cc2a3db6c28e25eb5ec85fc4fab`
-- aarch64: `sha256:d2034a47d260378f805be649a69eeb2651bc84f1d12bbd6c6ad1cc0ea4b36e60`
+Lokal gebaute Images, keine Registry-Veröffentlichung:
 
-Home Assistant baut das Add-on aus den veröffentlichten Quellen. Der Quellstand ist zur Installation strukturiert und die Images sind baubar; eine erfolgreiche Installation auf der Zielanlage wird noch nicht behauptet.
+- amd64: `sha256:8813292b2b192c45eed6f6256c387fcbfb8252acf1a37a23f54268f74ec92343`
+- aarch64: `sha256:b7536aca29b7f12c695c850099ffac31d25bdfa9d7dfa1a4778470209a416347`
 
-## Belege
+Quellcode wird im bestehenden öffentlichen Repository veröffentlicht. Home Assistant baut das Image für die Anlage aus diesen Quellen. GitHub-Actions-Prüfungen laufen separat nach Veröffentlichung; deren Ergebnis ist direkt im Actions-Run zu bewerten und wird nicht aus lokalen Ergebnissen abgeleitet.
 
-- `unit-tests.txt`: vollständiger lokaler Testlauf.
-- `build-amd64.txt`, `build-aarch64.txt`, `container-smoke.txt`: finaler Build und Lifecycle-Smoke-Test.
-- `browser.json`, `desktop.png`, `mobile.png`: tatsächliche Browserprüfung und synthetische Screenshots.
-- `design-lint.json`, `premium-audit.json`: statische Designprüfungen.
+## Noch auf der Anlage zu prüfen
 
-## Noch auf der Anlage erforderlich
+1. Update/Neustart auf 0.3.0, Übernahme von Supervisor-API-Recht und manager-Rolle, tatsächliche App-Liste und Core-/App-Logs.
+2. Die passenden evcc-/Zigbee2MQTT-/NIBE-Quellen wählen; bei NIBE als reiner Integration gegebenenfalls Core-Log. Bei Bedarf DEBUG/TRACE selbst in der jeweiligen App einstellen.
+3. Echter zwölfstündiger Betrieb auf dem Pi: Lograte, CPU-/Speicherlast, Kapazität und Abdeckung. Bei hoher Lograte Filter oder MiB-Grenze anpassen.
+4. Add-on-Neustart in einem echten laufenden Zeitfenster; ursprüngliches Ende und Datenlücken kontrollieren.
+5. Text/gzip in Android Companion App und über den tatsächlichen Fernzugriff herunterladen und öffnen. Browser-Emulation ist dafür kein Nachweis.
 
-1. Installation/Start auf Home Assistant OS und Raspberry Pi 5, Share-Persistenz und echter Ingress.
-2. Erreichbarkeit/API-Authentifizierung deiner evcc-Version 0.317.1 und natürlich auftretende RCT-Power-Ereignisse.
-3. Dateidownload und Öffnen auf Desktop, Android Companion App sowie tatsächlichem Fernzugriff; originales gzip und entpackten Text vergleichen. Natives Datei-Sharing separat prüfen.
-4. Add-on-Neustart während eines offenen Nachlaufs auf der Anlage, anschließend Vorgeschichte/Zeitfenster/Lücken prüfen.
-5. Betrieb über mehrere Tage: Speichergrenze, Dateialter, reale Lograte und Last auf dem Pi.
-
-Die API kann keine rückwirkend nie vorhandenen TRACE-Zeilen erzeugen und identische voll rotierte Puffer nicht eindeutig unterscheiden. KI-Analyse, Zigbee2MQTT- und NIBE-Adapter sind weiterhin Folgearbeit.
+Belege: `unit-tests.txt`, `browser.json`, `desktop.png`, `mobile.png`, `build-amd64.txt`, `build-aarch64.txt`, `container-smoke.txt`, `design-lint.json`, `premium-audit.json`.

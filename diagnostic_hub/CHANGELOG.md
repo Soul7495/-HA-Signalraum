@@ -1,5 +1,15 @@
 # Änderungen
 
+## 0.3.0
+
+- Installierte Supervisor-Apps und Core als Logquellen automatisch erkennen. Feste GET-Allowlist, manager-Rolle erforderlich.
+- Neue Hierarchie App → Logquelle → Stufenfilter → Zeitfenster, mit Puffer-Vorschau und direktem Download.
+- Manuelle Aufnahmen als Standard: Start/Beenden, Dauer/Intervall, optionaler Ausgangspuffer, mehrere Quellen und Text/gzip-Exporte.
+- Atomare SQLite-Speicherung von Logs und Cursor; ursprünglicher Endzeitpunkt bleibt über Neustarts erhalten.
+- Gemeinsames Speicherbudget mit Journalreserve, erkennbare Unterbrechungen und Kapazitätsstopp statt stiller Überschreibung.
+- Automatische evcc-Fehlersicherung nur noch bei ausdrücklicher Option aktiv; Altbestand bleibt gemäß Aufbewahrung verfügbar.
+- Keine Änderung von DEBUG/TRACE oder Geräte-/App-Steuerung.
+
 ## 0.2.0
 
 - Stable-API-Vertrag gegen evcc 0.317.1 geprüft; keine Nightly-Annahme.

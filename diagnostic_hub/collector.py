@@ -24,6 +24,7 @@ DEFAULTS = dict(
     retention_days=14,
     max_storage_mb=100,
     gzip_enabled=True,
+    automatic_evcc_enabled=False,
 )
 POST_SECONDS = 120
 
@@ -39,7 +40,9 @@ def settings():
     if OPTIONS.exists():
         config.update(json.loads(OPTIONS.read_text()))
     url = urlsplit(config["evcc_url"])
-    if (
+    if config["automatic_evcc_enabled"] and not config["evcc_url"]:
+        raise ValueError("Für automatische evcc-Fehlersicherung ist eine evcc-Adresse erforderlich")
+    if config["evcc_url"] and (
         url.scheme not in ("http", "https")
         or not url.hostname
         or url.username
@@ -51,6 +54,8 @@ def settings():
     for key, low, high in [("poll_seconds", 10, 300), ("retention_days", 1, 365), ("max_storage_mb", 10, 10000)]:
         if type(config[key]) is not int or not low <= config[key] <= high:
             raise ValueError(f"Ungültige Option: {key}")
+    if type(config["automatic_evcc_enabled"]) is not bool:
+        raise ValueError("Ungültige Automatik-Option")
     if type(config["gzip_enabled"]) is not bool or not isinstance(config["evcc_api_key"], str):
         raise ValueError("Ungültige Komprimierung oder API-Schlüssel")
     return config
@@ -105,7 +110,7 @@ class Collector:
 
     @property
     def limit(self):
-        return int(self.config["max_storage_mb"]) * 1024 * 1024
+        return self.config.get("storage_limit_bytes", int(self.config["max_storage_mb"]) * 1024 * 1024)
 
     def files(self):
         return [p for p in self.root.iterdir() if p.is_file() and not p.is_symlink()]

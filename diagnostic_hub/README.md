@@ -1,5 +1,5 @@
-# Diagnostic Hub
+# Diagnostic Hub 0.3.0
 
-Lesender Diagnose-Hub für evcc/RCT mit automatischer Fallaufnahme, dauerhafter Vorgeschichte, zweiminütigem Nachlauf und deutscher Home-Assistant-Ingress-Oberfläche.
+Installierte Apps erkennen, vorhandene Logs filtern und gezielt für ein Zeitfenster aufnehmen. Standardmäßig manuell; optionale automatische evcc-Fehlersicherung. Keine App-Steuerung und keine Änderung von Logstufen.
 
-[Einrichtung und Grenzen](DOCS.md) · [Repository und Prüfstatus](https://github.com/Soul7495/-HA-Signalraum)
+[Einrichtung und Grenzen](DOCS.md) · [Repository](https://github.com/Soul7495/-HA-Signalraum)

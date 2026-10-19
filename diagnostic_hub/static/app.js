@@ -1,4 +1,9 @@
 'use strict';
+window.diagnosticQuery = values => {
+  const current = new URLSearchParams(location.search);
+  for (const [key,value] of Object.entries(values)) current.set(key,String(value));
+  history.replaceState(null,'',location.pathname+'?'+current.toString());
+};
 const $ = selector => document.querySelector(selector);
 const base = new URL(document.querySelector('base').href);
 const params = new URLSearchParams(location.search);
@@ -95,8 +100,7 @@ async function update() {
       for (const item of cases.items) { const card = caseCard(item); card.dataset.file = item.filename; card.querySelector('details').open = opened.has(item.filename); list.append(card); }
     }
     page = cases.page;
-    params.set('page', String(page));
-    history.replaceState(null, '', location.pathname + '?' + params.toString());
+    window.diagnosticQuery({page});
     $('#range').textContent = `Seite ${page} von ${cases.pages} · ${cases.total} ${cases.total === 1 ? 'Fall' : 'Fälle'}`;
     $('#prev').disabled = page <= 1;
     $('#next').disabled = page >= cases.pages;

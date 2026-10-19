@@ -7,3 +7,9 @@ options.json
 *.log
 node_modules/
 .ruff_cache/
+*.sqlite3
+*.sqlite3-*
+*.json.gz
+/data/
+/error_logger/
+/evcc/
