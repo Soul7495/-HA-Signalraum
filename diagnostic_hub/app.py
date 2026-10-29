@@ -79,7 +79,6 @@ def _read_json_request(stream, headers):
     return json.loads(body)
 
 
-
 def handler_for(collector, development=False, hub=None):
     class Handler(BaseHTTPRequestHandler):
         def setup(self):
