@@ -29,10 +29,13 @@ class IngressPostTests(unittest.TestCase):
     def post(self, body, *, chunked=False, content_type="application/json", headers=None):
         conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
         self.addCleanup(conn.close)
-        headers = dict(headers or {}, **{
-            "Content-Type": content_type,
-            "X-Diagnostic-Hub": "1",
-        })
+        headers = dict(
+            headers or {},
+            **{
+                "Content-Type": content_type,
+                "X-Diagnostic-Hub": "1",
+            },
+        )
         data = [body[:19], body[19:]] if chunked else body
         conn.request(
             "POST",
