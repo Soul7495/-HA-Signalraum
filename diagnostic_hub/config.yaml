@@ -1,5 +1,5 @@
 name: Diagnostic Hub
-version: 0.3.1
+version: 0.3.2
 slug: diagnostic_hub
 description: Manuelle Diagnoseaufnahmen für Home-Assistant-Apps mit automatischer Quellenerkennung
 url: https://github.com/Soul7495/-HA-Signalraum

@@ -18,6 +18,7 @@ from app import handler_for
 from collector import Collector, DEFAULTS
 from recordings import Recordings
 from sources import Sources, Supervisor, filtered, readable_error
+from version import __version__
 
 
 class FakeSupervisor:
@@ -333,7 +334,7 @@ class RecordingHTTPTests(RecordingFixture, unittest.TestCase):
         with self.request("/api/diagnostics") as response:
             self.assertIn("attachment", response.headers["Content-Disposition"])
             report = json.load(response)
-        self.assertEqual(report["version"], "0.3.1")
+        self.assertEqual(report["version"], __version__)
         self.assertEqual(report["discovery_status"], "ok")
         self.assertEqual(report["installed_apps"], 3)
         self.assertNotIn("evcc_api_key", report)

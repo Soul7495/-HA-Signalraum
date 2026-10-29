@@ -17,6 +17,67 @@ from version import __version__
 
 STATIC = Path(__file__).parent / "static"
 
+MAX_JSON_REQUEST = 4096
+
+
+def _read_json_request(stream, headers):
+    """Read a small JSON POST with Content-Length or Ingress chunked encoding.
+
+    Home Assistant Ingress may stream requests using Transfer-Encoding: chunked
+    without Content-Length. BaseHTTPRequestHandler does not decode that framing.
+    Apply the same strict byte limit to either transfer mode.
+    """
+    content_type = headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+    if content_type != "application/json":
+        raise ValueError("JSON-Anfrage mit Content-Type application/json erforderlich.")
+
+    transfer = headers.get("Transfer-Encoding", "").strip().lower()
+    length = headers.get("Content-Length")
+    if transfer:
+        if transfer != "chunked" or length is not None:
+            raise ValueError("Ungültige HTTP-Übertragungskodierung.")
+        chunks = []
+        total = 0
+        for _ in range(MAX_JSON_REQUEST + 2):
+            line = stream.readline(128)
+            if not line.endswith(b"\r\n"):
+                raise ValueError("Ungültige Chunked-JSON-Anfrage.")
+            try:
+                size = int(line[:-2].split(b";", 1)[0], 16)
+            except ValueError:
+                raise ValueError("Ungültige Chunk-Größe.") from None
+            if size < 0 or total + size > MAX_JSON_REQUEST:
+                raise ValueError("JSON-Anfrage darf maximal 4 KiB groß sein.")
+            if size == 0:
+                for _ in range(16):
+                    trailer = stream.readline(1024)
+                    if trailer == b"\r\n":
+                        break
+                    if not trailer.endswith(b"\r\n"):
+                        raise ValueError("Ungültige Chunked-Trailer.")
+                else:
+                    raise ValueError("Zu viele Chunked-Trailer.")
+                break
+            chunk = stream.read(size)
+            if len(chunk) != size or stream.read(2) != b"\r\n":
+                raise ValueError("Unvollständige Chunked-JSON-Anfrage.")
+            chunks.append(chunk)
+            total += size
+        else:
+            raise ValueError("Zu viele JSON-Datenblöcke.")
+        body = b"".join(chunks)
+    else:
+        if not length or not length.isdecimal() or not 0 < int(length) <= MAX_JSON_REQUEST:
+            raise ValueError("JSON-Anfrage mit maximal 4 KiB erforderlich.")
+        size = int(length)
+        body = stream.read(size)
+        if len(body) != size:
+            raise ValueError("Unvollständige JSON-Anfrage.")
+
+    if not body:
+        raise ValueError("Leere JSON-Anfrage.")
+    return json.loads(body)
+
 
 def handler_for(collector, development=False, hub=None):
     class Handler(BaseHTTPRequestHandler):
@@ -49,10 +110,7 @@ def handler_for(collector, development=False, hub=None):
                 self.reply(b"Aufnahmen nicht verfuegbar.", "text/plain", 503)
                 return
             try:
-                size = int(self.headers.get("Content-Length", "0"))
-                if not 0 < size <= 4096 or self.headers.get("Content-Type", "").split(";")[0] != "application/json":
-                    raise ValueError("JSON-Anfrage mit maximal 4 KiB erforderlich.")
-                data = json.loads(self.rfile.read(size))
+                data = _read_json_request(self.rfile, self.headers)
                 path = urllib.parse.urlsplit(self.path).path
                 if path == "/api/recordings":
                     result = hub.create(data)
