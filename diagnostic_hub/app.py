@@ -40,7 +40,7 @@ def _read_json_request(stream, headers):
         total = 0
         for _ in range(MAX_JSON_REQUEST + 2):
             line = stream.readline(128)
-            if not line.endswith(b"\\r\\n"):
+            if not line.endswith(b"\r\n"):
                 raise ValueError("Ungültige Chunked-JSON-Anfrage.")
             try:
                 size = int(line[:-2].split(b";", 1)[0], 16)
@@ -51,15 +51,15 @@ def _read_json_request(stream, headers):
             if size == 0:
                 for _ in range(16):
                     trailer = stream.readline(1024)
-                    if trailer == b"\\r\\n":
+                    if trailer == b"\r\n":
                         break
-                    if not trailer.endswith(b"\\r\\n"):
+                    if not trailer.endswith(b"\r\n"):
                         raise ValueError("Ungültige Chunked-Trailer.")
                 else:
                     raise ValueError("Zu viele Chunked-Trailer.")
                 break
             chunk = stream.read(size)
-            if len(chunk) != size or stream.read(2) != b"\\r\\n":
+            if len(chunk) != size or stream.read(2) != b"\r\n":
                 raise ValueError("Unvollständige Chunked-JSON-Anfrage.")
             chunks.append(chunk)
             total += size
