@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.3.2
+
+- Korrigiert das Starten und Beenden manueller Aufnahmen über Home Assistant Ingress: gestreamte JSON-POST-Anfragen mit `Transfer-Encoding: chunked` werden jetzt unterstützt.
+- Die 4-KiB-Grenze gilt sowohl für Chunked- als auch für Content-Length-Anfragen. Ungültige Übertragungskodierungen bleiben gesperrt.
+- Neue Regressionstests für Ingress-POST, Dateigrößenlimit und Content-Type-Prüfung.
+
 ## 0.3.1
 
 - Startfehler auf unverschlüsselten HTTP-Ursprüngen behoben: keine Abhängigkeit mehr von `crypto.randomUUID`, `AbortSignal.any` oder `AbortSignal.timeout`.
